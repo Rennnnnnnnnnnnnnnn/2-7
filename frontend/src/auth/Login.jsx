@@ -41,7 +41,7 @@ function Login() {
             } finally {
                 setLoading(false);  // Hide the spinner once the request is complete
             }
-        }, 2000); 
+        }, 2000);
     };
 
     return (
@@ -65,55 +65,55 @@ function Login() {
                             </div>
                         </div>
                     </div>
-                    <div className="w-[400px] h-[500px] mx-auto p-8 bg-gray-300 flex flex-col items-center justify-center rounded-tr-2xl rounded-br-2xl">
+                    <div className="w-[400px] h-[500px] mx-auto p-2 bg-gray-300 flex flex-col items-center justify-center rounded-tr-2xl rounded-br-2xl">
                         {loading ? <CircularProgress size={95} /> :
-                            <form noValidate autoComplete="off" className="w-full mr-8" onSubmit={handleSubmit}>
-                                {/* Username/Email field */}
+                            <div className="bg-gray-200 p-6 mr-10 shadow-2xl rounded-lg">
+                                <form noValidate autoComplete="off" className="w-full mr-8" onSubmit={handleSubmit}>
+                                    {/* Username/Email field */}
+                                    <TextField
+                                        id="email"
+                                        label="Email"
+                                        variant="outlined"
+                                        fullWidth
+                                        margin="normal"
+                                        required
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        type="email"
+                                        error={!!error}
+                                    />
+                                    {/* Password field */}
+                                    <TextField
+                                        id="password"
+                                        label="Password"
+                                        variant="outlined"
+                                        fullWidth
+                                        margin="normal"
+                                        required
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        type="password"
+                                        error={!!error}
+                                    />
 
-                                <TextField
-                                    id="email"
-                                    label="Email"
-                                    variant="outlined"
-                                    fullWidth
-                                    margin="normal"
-                                    required
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    type="email"
-                                    error={!!error}
-                                />
-                                {/* Password field */}
-                                <TextField
-                                    id="password"
-                                    label="Password"
-                                    variant="outlined"
-                                    fullWidth
-                                    margin="normal"
-                                    required
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    type="password"
-                                    error={!!error}
-                                />
+                                    {/* Submit button */}
+                                    <Button
+                                        variant="contained"
+                                        color="primary"
+                                        fullWidth
+                                        type="submit"
+                                        style={{ marginTop: '1rem' }}
+                                        disabled={loading}  // Disable button when loading
+                                    >
+                                        Login
+                                    </Button>
 
-                                {/* Submit button */}
-                                <Button
-                                    variant="contained"
-                                    color="primary"
-                                    fullWidth
-                                    type="submit"
-                                    style={{ marginTop: '1rem' }}
-                                    disabled={loading}  // Disable button when loading
-                                >
-                                    Login
-                                </Button>
+                                    {/* Error message */}
+                                    {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
 
-                                {/* Error message */}
-                                {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
-
-                                <p className="text-sm font-sm text-right mt-2 text-blue-500 cursor-pointer">Forgot password</p>
-                            </form>
-                        }
+                                    <p className="text-sm font-sm text-right mt-2 text-blue-500 cursor-pointer">Forgot password</p>
+                                </form>
+                            </div>}
                     </div>
                 </div>
             </div>
