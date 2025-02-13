@@ -17,20 +17,20 @@ const port = process.env.PORT || 8000;
 
 app.use(cors());  // Enable CORS
 app.use(express.json());  // Parse incoming JSON requests
+app.use(express.urlencoded({ extended: true })); 
 
 // Middleware
 app.use(logger);  // Optional logger
-
-// Authentication routes
 
 app.use('/api/batch', batch);  // Transactions routes
 app.use('/api/auth', authRoutes);  // Authentication routes
 app.use('/api/accounts', accounts);  // Accounts routes
 app.use('/api/transactions', transactions);  // Transactions routes
-app.use('/api/inventory', inventory);  // Inventory routes
+app.use('/api/inventory', inventory); 
 
 
-
+// Middleware
+app.use(logger);  // Optional logger
 // Error handling middleware
 app.use(notFound);
 app.use(errorHandler);

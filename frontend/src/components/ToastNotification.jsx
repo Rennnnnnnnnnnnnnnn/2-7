@@ -8,9 +8,9 @@ const ToastNotifications = () => {
         <>
             <ToastContainer
                 position="top-center"
-                autoClose={2500}
+                autoClose={1500}
                 hideProgressBar={false}
-                newestOnTop={false}
+                newestOnTop={true}
                 closeOnClick
                 rtl={false}
                 pauseOnFocusLoss
@@ -18,7 +18,7 @@ const ToastNotifications = () => {
                 pauseOnHover 
                 style={{
                     whiteSpace: 'nowrap', 
-                    width: '450px'
+                    width: '400px'
                 }}
             />
         </>

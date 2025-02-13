@@ -3,6 +3,10 @@ import { Modal, Box, TextField, Button, MenuItem, FormControl, InputLabel, Selec
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DesktopDatePicker } from '@mui/x-date-pickers/DesktopDatePicker';
+import { DesktopDateTimePicker } from '@mui/x-date-pickers/DesktopDateTimePicker';
+
+import { renderTimeViewClock } from '@mui/x-date-pickers/timeViewRenderers';
+
 import { FormHelperText } from '@mui/material';
 import InputAdornment from '@mui/material/InputAdornment';
 import dayjs from 'dayjs';
@@ -23,6 +27,7 @@ const EditTransactionModal = ({ isOpen, handleClose, handleConfirmEdit, selected
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [transactionId, setTransactionId] = useState(null);
     const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
+    const [itemName, setItemName] = useState('');
 
     useEffect(() => {
         if (selectedTransactionData) {
@@ -35,6 +40,7 @@ const EditTransactionModal = ({ isOpen, handleClose, handleConfirmEdit, selected
             setBatchId(selectedTransactionData.batch_id);
             setItemType(selectedTransactionData.item_type);
             setTransactionId(selectedTransactionData.transaction_id);
+            setItemName(selectedTransactionData.item_name);
         }
 
         console.log(selectedTransactionData);
@@ -48,10 +54,8 @@ const EditTransactionModal = ({ isOpen, handleClose, handleConfirmEdit, selected
         } else if (transactionType === "Expense") {
             return [
                 "Chicks",
-                "Feeds: Starter",
-                "Feeds: Chick Booster",
-                "Vitamins: Atobe",
-                "Vitamins: Molases",
+                "Feeds",
+                "Supplements",
                 "Labor",
                 "Water",
                 "Electricity",
@@ -73,24 +77,25 @@ const EditTransactionModal = ({ isOpen, handleClose, handleConfirmEdit, selected
         e.preventDefault();
         setIsSubmitted(true);
 
-        const isFormValid = transactionDate && transactionType && itemType && quantity && pricePerUnit && totalCost;
+        const isFormValid = batchId && transactionId && transactionDate && transactionType && contactName && itemType && itemName && quantity && pricePerUnit && totalCost;
 
         if (!isFormValid) return; // Prevent submission if any field is empty
 
         const updatedTransactionData = {
             batchId: batchId,
+            transactionId: transactionId,
             transactionDate: transactionDate,
             transactionType: transactionType,
-            contactName: contactName || " ",
+            contactName: contactName,
             itemType: itemType,
+            itemName: itemName,
             quantity: quantity,
             pricePerUnit: pricePerUnit,
             totalCost: totalCost,
-            transactionId: transactionId,
         };
 
         console.log(updatedTransactionData);
-        handleConfirmEdit(updatedTransactionData); 
+        handleConfirmEdit(updatedTransactionData);
         handleClose();
     };
 
@@ -108,7 +113,7 @@ const EditTransactionModal = ({ isOpen, handleClose, handleConfirmEdit, selected
                     handleClose();
                 }}
                 sx={{
-                    zIndex: 10, 
+                    zIndex: 10,
                 }}
             >
                 <Box
@@ -126,22 +131,8 @@ const EditTransactionModal = ({ isOpen, handleClose, handleConfirmEdit, selected
                 >
                     <label className="font-semibold text-2xl text-center block mb-5">Edit Transaction</label>
                     <form onSubmit={handleFormSubmit}>
-                        <FormControl fullWidth margin="normal" error={isSubmitted && !transactionDate}>
-                            <LocalizationProvider dateAdapter={AdapterDayjs}>
-                                <DesktopDatePicker
-                                    label="Transaction Date"
-                                    value={transactionDate}
-                                    onChange={(newDate) => setTransactionDate(newDate)}
-                                    required
-                                    slotProps={{
-                                        field: { clearable: true, onClear: () => setTransactionDate(null) },
-                                    }}
-                                />
-                            </LocalizationProvider>
-                            {isSubmitted && !transactionDate && (
-                                <FormHelperText style={{ color: 'red' }}>Transaction Date is required</FormHelperText>
-                            )}
-                        </FormControl>
+
+
 
                         <div className='flex gap-4'>
                             {/* TRANSACTION TYPE */}
@@ -167,6 +158,63 @@ const EditTransactionModal = ({ isOpen, handleClose, handleConfirmEdit, selected
                                 )}
                             </FormControl>
 
+                            <FormControl fullWidth margin="normal" error={isSubmitted && !transactionDate}>
+                                <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                    <DesktopDateTimePicker
+                                        label="Transaction Date"
+                                        value={transactionDate}
+                                        onChange={(newDate) => setTransactionDate(newDate)}
+                                        required
+                                        viewRenderers={{
+                                            hours: renderTimeViewClock,
+                                            minutes: renderTimeViewClock,
+                                            seconds: renderTimeViewClock,
+                                        }}
+                                        slotProps={{
+                                            field: { clearable: true, onClear: () => setTransactionDate(null) },
+                                        }}
+                                        sx={{
+                                            '& .MuiInputBase-root': {
+                                                borderColor: 'red',
+                                            },
+                                        }}
+                                    />
+                                </LocalizationProvider>
+                                {isSubmitted && !transactionDate && (
+                                    <FormHelperText style={{ color: 'red' }}>Transaction Date is required</FormHelperText>
+                                )}
+                            </FormControl>
+                        </div>
+
+                        <div className='flex gap-4'>
+                            {/* ITEM TYPE */}
+                            <FormControl
+                                fullWidth
+                                margin="normal"
+                                error={isSubmitted && !itemType}
+                            >
+                                <InputLabel>Item Type</InputLabel>
+                                <Select
+                                    value={itemType}
+                                    onChange={(e) => setItemType(e.target.value)}
+                                    label="Item Type"
+                                    disabled={!transactionType}
+                                >
+                                    <MenuItem value=""
+                                        disabled
+                                    >
+                                        Select Item Type
+                                    </MenuItem>
+                                    {getItemTypeOptions().map((type, index) => (
+                                        <MenuItem key={index} value={type}>
+                                            {type}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                                {isSubmitted && !itemType && (
+                                    <FormHelperText style={{ color: 'red' }}>Item Type is required</FormHelperText>
+                                )}
+                            </FormControl>
                             {/* QUANTITY */}
                             <TextField
                                 label="Quantity"
@@ -184,10 +232,8 @@ const EditTransactionModal = ({ isOpen, handleClose, handleConfirmEdit, selected
                                             {itemType === "Liveweight" && " Kilos"}
                                             {itemType === "Dressed" && " Kilos"}
                                             {itemType === "Chicks" && " Heads"}
-                                            {itemType === "Feeds: Starter" && " Sacks"}
-                                            {itemType === "Feeds: Chick Booster" && " Sacks"}
-                                            {itemType === "Vitamins: Atobe" && " Kilos"}
-                                            {itemType === "Vitamins: Molases" && " Bottles"}
+                                            {itemType === "Feeds" && " Kilos"}
+                                            {itemType === "Supplements" && " Kilos"}
                                             {itemType === "Labor" && " Heads"}
                                             {itemType === "Water" && " Gallons"}
                                             {itemType === "Electricity" && " Kilowatts"}
@@ -211,30 +257,14 @@ const EditTransactionModal = ({ isOpen, handleClose, handleConfirmEdit, selected
                         </div>
 
                         <div className='flex gap-4'>
-                            {/* ITEM TYPE */}
-                            <FormControl
+                            {/* ITEM NAME */}
+                            <TextField
+                                label="Item Name"
                                 fullWidth
+                                value={itemName}
+                                onChange={(e) => setItemName(e.target.value)}
                                 margin="normal"
-                                error={isSubmitted && !itemType}
-                            >
-                                <InputLabel>Item Type</InputLabel>
-                                <Select
-                                    value={itemType}
-                                    onChange={(e) => setItemType(e.target.value)}
-                                    label="Item Type"
-                                    disabled={!transactionType}
-                                >
-                                    <MenuItem value="" disabled>Select Item Type</MenuItem>
-                                    {getItemTypeOptions().map((type, index) => (
-                                        <MenuItem key={index} value={type}>
-                                            {type}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                                {isSubmitted && !itemType && (
-                                    <FormHelperText style={{ color: 'red' }}>Item Type is required</FormHelperText>
-                                )}
-                            </FormControl>
+                            />
 
                             {/* PRICE PER UNIT */}
                             <TextField
@@ -262,10 +292,8 @@ const EditTransactionModal = ({ isOpen, handleClose, handleConfirmEdit, selected
                                             {itemType === "Liveweight" && "Per Kilo"}
                                             {itemType === "Dressed" && "Per Kilo"}
                                             {itemType === "Chicks" && "Per Head"}
-                                            {itemType === "Feeds: Starter" && "Per Sack"}
-                                            {itemType === "Feeds: Chick Booster" && "Per Sack"}
-                                            {itemType === "Vitamins: Atobe" && "Per Kilo"}
-                                            {itemType === "Vitamins: Molases" && "Per Bottle"}
+                                            {itemType === "Feeds" && "Per Kilo"}
+                                            {itemType === "Supplements" && "Per Kilo"}
                                             {itemType === "Labor" && "Per Head"}
                                             {itemType === "Water" && "Per Gallon"}
                                             {itemType === "Electricity" && "Per Kilowatt"}

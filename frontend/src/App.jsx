@@ -11,9 +11,22 @@ import Inventory from './pages/Inventory';
 import Transactions from './pages/Transactions';
 import BatchHistory from './pages/BatchHistory';
 
+
+import ToastNotifications from '../src/components/ToastNotification.jsx'; // Assuming it's in the same folder
+
+import { toast, ToastContainer } from 'react-toastify'; 
+import 'react-toastify/dist/ReactToastify.css';
+
 function App() {
   return (
+    <>
+      <ToastNotifications />
+   
     <Router>
+    
+      {/* <ToastContainer /> */}
+    
+
       <Routes>
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/login" element={<Login />} />
@@ -29,7 +42,7 @@ function App() {
       </Routes>
     </Router>
 
-
+    </>
 
 
   );

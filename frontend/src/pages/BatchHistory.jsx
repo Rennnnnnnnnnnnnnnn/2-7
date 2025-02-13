@@ -11,7 +11,7 @@ function BatchHistory() {
     useEffect(() => {
         const fetchLastActiveBatch = async () => {
             try {
-                const response = await axios.get('http://localhost:8000/api/batch/last-active');
+                const response = await axios.get('/api/batch/last-active');
                 if (response.data && response.data.batchName) {
                     setCurrentBatch(response.data); // Set the current batch object
                 }
@@ -26,7 +26,7 @@ function BatchHistory() {
     // Function to create a new batch
     const createBatch = async () => {
         try {
-            const response = await axios.post('http://localhost:8000/api/batch/create', {
+            const response = await axios.post('/api/batch/create', {
                 batchName: "Batch Name" // This can be dynamic based on user input
             });
             setCurrentBatch({ batchId: response.data.batchId, batchName: "Batch Name" }); // Store the current batch

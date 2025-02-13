@@ -3,14 +3,14 @@ import {
     addTransaction,
     getTransactions,
     getTransactionById,
-    updateTransaction,
+    editTransaction,
     deleteTransaction
 } from '../controllers/transactionsController.js';
 
 const router = express.Router();
 
 // Route for adding a transaction (POST)
-router.post('/', addTransaction);
+router.post('/add-transaction', addTransaction);
 
 // Route for getting all transactions (GET)
 // router.get('/', getTransactions);
@@ -20,7 +20,7 @@ router.get('/:batchId', getTransactions);
 router.get('/:id', getTransactionById);
 
 // Route for updating a transaction (PUT)
-router.put('/:id', updateTransaction);
+router.put('/:id', editTransaction);
 
 // Route for deleting a transaction (DELETE)
 router.delete('/:id', deleteTransaction);

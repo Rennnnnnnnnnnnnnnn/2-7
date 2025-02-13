@@ -21,29 +21,24 @@ import EditTransactionModal from '../components/modals/EditTransactionModal';
 import { toast } from 'react-toastify';
 import ToastNotifications from '../components/ToastNotification'; // Assuming it's in the same folder
 import ConfirmationModal from '../components/modals/ConfirmationModal';
+import * as XLSX from 'xlsx';
 
 function Transactions() {
-    // const [startDate, setStartDate] = useState(dayjs());
-    // const [endDate, setEndDate] = useState(dayjs());
     // State for transactions and their filters
     const [transactions, setTransactions] = useState([]);
     const [filteredTransactions, setFilteredTransactions] = useState([]);
     const [transactionTypeFilter, setTransactionTypeFilter] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
-
     // State for batch and transaction selection
     const [currentBatch, setCurrentBatch] = useState(null);
     const [selectedTransactionData, setSelectedTransactionData] = useState(null);
-
     // State for date filters
     const [startDate, setStartDate] = useState(null);
     const [endDate, setEndDate] = useState(null);
-
     // State for modals
     const [isAddTransactionModalOpen, setIsAddTransactionModalOpen] = useState(false);
     const [isEditTransactionModalOpen, setIsEditTransactionModalOpen] = useState(false);
     const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
-
     // Other state
     const [cleared, setCleared] = useState(false);
 
@@ -58,6 +53,85 @@ function Transactions() {
     const handleOpenConfirmationModal = () => setIsConfirmationModalOpen(true);
     const handleCloseConfirmationModal = () => setIsConfirmationModalOpen(false);
 
+    const handleDownloadButton = () => {
+        if (filteredTransactions.length === 0) {
+            return;
+        }
+        // Map the filtered transactions to format dates and numbers
+        const formattedData = filteredTransactions.map(transaction => ({
+            ID: transaction.transaction_id, // Custom header name
+            'Transaction Date': new Date(transaction.transaction_date).toLocaleString('en-US', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+            }), // Format the date into a readable format
+            'Type': transaction.transaction_type, // Custom header name
+            'Contact Name': transaction.contact_name, // Custom header name
+            'Item Type': transaction.item_type, // Custom header name
+            'Item Name': transaction.item_name, // Custom header name
+            'Quantity': transaction.quantity.toLocaleString(), // Add commas to large numbers
+            'Price per Unit': transaction.price_per_unit.toLocaleString(), // Add commas to large numbers
+            'Total Cost': transaction.total_cost.toLocaleString(), // Add commas to large numbers
+            'Batch ID': transaction.batch_id, // Custom header name
+        }));
+        // Convert the formatted data to a worksheet
+        const worksheet = XLSX.utils.json_to_sheet(formattedData);
+        // Custom header order and alignment styles
+        const headers = [
+            ['ID', 'Transaction Date', 'Type', 'Contact Name', 'Item Type', 'Item Name', 'Quantity', 'Price per Unit', 'Total Cost', 'Batch ID']
+        ];
+        // Add headers at the top of the worksheet
+        XLSX.utils.sheet_add_aoa(worksheet, headers, { origin: 'A1' });
+        // Apply center alignment to headers (first row)
+        const headerRange = XLSX.utils.decode_range(worksheet['!ref']);
+        for (let C = headerRange.s.c; C <= headerRange.e.c; ++C) {
+            const cell = worksheet[XLSX.utils.encode_cell({ r: 0, c: C })]; // Header cell
+            if (cell) {
+                cell.s = {
+                    alignment: { horizontal: 'center', vertical: 'center' }, // Center align headers
+                    font: { bold: true }, // Bold headers
+                    border: { // Optional: Add borders for the headers
+                        top: { style: "thin" },
+                        bottom: { style: "thin" },
+                        left: { style: "thin" },
+                        right: { style: "thin" },
+                    },
+                };
+            }
+        }
+        // Apply left alignment to data rows (starting from row 1, skipping the header row)
+        for (let R = 1; R <= filteredTransactions.length; ++R) {
+            for (let C = 0; C < headers[0].length; ++C) {
+                const cell = worksheet[XLSX.utils.encode_cell({ r: R, c: C })]; // Data cell
+                if (cell) {
+                    cell.s = { alignment: { horizontal: 'left' } }; // Left align data
+                }
+            }
+        }
+        // Set custom column widths
+        worksheet['!cols'] = [
+            { wpx: 80 },  // ID (80px width)
+            { wpx: 160 }, // Transaction Date (160px width)
+            { wpx: 120 }, // Type (120px width)
+            { wpx: 150 }, // Contact Name (150px width)
+            { wpx: 120 }, // Item Type (120px width)
+            { wpx: 180 }, // Item Name (180px width)
+            { wpx: 80 },  // Quantity (80px width)
+            { wpx: 100 }, // Price per Unit (100px width)
+            { wpx: 100 }, // Total Cost (100px width)
+            { wpx: 80 },  // Batch ID (80px width)
+        ];
+        // Create a new workbook and append the worksheet
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Transactions');
+        // Use the batch ID from the first transaction for the filename
+        const batchId = filteredTransactions[0].batch_id || 'unknown_batch';
+        // Trigger the file download with batch ID in the filename
+        XLSX.writeFile(workbook, `transactions_Batch-${batchId}.xlsx`);
+    };
     //PARA SA CLEAR NG DATE INPUT
     useEffect(() => {
         if (cleared) {
@@ -69,19 +143,14 @@ function Transactions() {
         }
         return () => { };
     }, [cleared]);
-
-
     useEffect(() => {
         filterData();
     }, [searchQuery, transactionTypeFilter, startDate, endDate, transactions]);
-
-
-
     //PARA SA FETCH CURRENT BATCH
     useEffect(() => {
         const fetchCurrentBatchIdAndName = async () => {
             try {
-                const response = await axios.get('api/batch/last-active');
+                const response = await axios.get('/api/batch/last-active');
                 if (response.data && response.data.batchName) {
                     setCurrentBatch(response.data);
                 }
@@ -90,14 +159,15 @@ function Transactions() {
             }
         };
         fetchCurrentBatchIdAndName();
-    }, []); // This effect runs once when the component mounts
+    }, []);
 
     const fetchDataOfCurrentBatch = async () => {
-        if (!currentBatch || !currentBatch.batchId) return; // Check if currentBatch is set
+        if (!currentBatch || !currentBatch.batchId) return;
 
         try {
-            const response = await axios.get(`api/transactions/${currentBatch.batchId}`);
-            setTransactions(response.data); // Set the transactions in the state
+            const response = await axios.get(`/api/transactions/${currentBatch.batchId}`);
+            setTransactions(response.data);
+            console.log("Transactions Data", transactions);
         } catch (error) {
             console.error('Error fetching transactions:', error);
         }
@@ -109,13 +179,10 @@ function Transactions() {
         }
     }, [currentBatch]);
 
-
-
-
     // PARA SA ADD TRANSACTION
     const handleAddTransactionSubmit = async (newTransactionData) => {
         try {
-            const response = await axios.post('api/transactions', newTransactionData, {
+            const response = await axios.post('/api/transactions/add-transaction', newTransactionData, {
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -138,7 +205,6 @@ function Transactions() {
         }
     };
 
-
     const handleEditClick = (transaction) => {
         setSelectedTransactionData(transaction);
         setIsEditTransactionModalOpen(true);
@@ -147,7 +213,7 @@ function Transactions() {
     // PARA SA EDIT TRANSACTION
     const handleConfirmEdit = async (updatedTransactionData) => {
         try {
-            const response = await axios.put(`api/transactions/${updatedTransactionData.transactionId}`, updatedTransactionData, {
+            const response = await axios.put(`/api/transactions/${updatedTransactionData.transactionId}`, updatedTransactionData, {
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -157,13 +223,11 @@ function Transactions() {
                 console.log('Transaction updated successfully:', response.data);
                 //    alert('Transaction updated successfully!');
                 toast.success('Transaction updated successfully!');
-
-                fetchDataOfCurrentBatch();  // Optionally refresh the transaction list or update the UI
+                fetchDataOfCurrentBatch();
             } else {
                 console.error('Error:', response.data);
                 //  alert('Error: ' + response.data.error);
                 toast.error('Error: ' + response.data.error);
-
             }
         } catch (error) {
             console.error('Error:', error.response ? error.response.data : error.message);
@@ -171,16 +235,14 @@ function Transactions() {
         }
     };
 
-
     const handleDeleteClick = (transaction_id) => {
         setIsConfirmationModalOpen(true);
         setSelectedTransactionData(transaction_id);
     };
-
     // PARA SA DELETE
     const handleConfirmDelete = async () => {
         try {
-            const response = await axios.delete(`api/transactions/${selectedTransactionData}`)
+            const response = await axios.delete(`/api/transactions/${selectedTransactionData}`)
 
             if (response.status === 200) {
                 //     alert('Item deleted successfully');
@@ -197,15 +259,18 @@ function Transactions() {
 
         }
     };
-
-    function formatDateToReadableString(date) {
-        return new Date(date).toLocaleDateString('en-PH', {
-            month: 'long',
-            day: 'numeric',
+    // FORMAT DATE
+    function formatDateToReadableString(dateString) {
+        const date = new Date(dateString); // Parse the date string
+        return date.toLocaleString('en-PH', {
             year: 'numeric',
+            month: 'long',  // Full month name (e.g., "January")
+            day: 'numeric',  // Day without leading zeros
+            hour: 'numeric',  // Hour (12-hour format)
+            minute: '2-digit',  // Minutes with leading zeros if necessary
+            hour12: true,  // AM/PM format
         });
     }
-
     // PARA HINDI SCROLLABLE
     useEffect(() => {
         document.body.style.overflow = 'hidden';
@@ -213,7 +278,6 @@ function Transactions() {
             document.body.style.overflow = 'auto';
         };
     }, []);
-
     // Function to calculate totals
     const calculateTotals = () => {
         let totalSales = 0;
@@ -221,24 +285,26 @@ function Transactions() {
 
         transactions.forEach(transaction => {
             if (transaction.transaction_type === 'Sale') {
-                totalSales += transaction.total_cost;
+                totalSales += parseFloat(transaction.total_cost);
             } else if (transaction.transaction_type === 'Expense') {
-                totalExpenses += transaction.total_cost;
+                totalExpenses += parseFloat(transaction.total_cost);
             }
         });
 
         const incomeOrLoss = totalSales - totalExpenses;
 
-        return { totalSales, totalExpenses, incomeOrLoss };
+        return {
+            totalSales: totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+            totalExpenses: totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+            incomeOrLoss: incomeOrLoss.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        };
     };
 
     const { totalSales, totalExpenses, incomeOrLoss } = calculateTotals();
 
 
-
     const filterData = () => {
         let filtered = [...transactions];
-
         // Apply search filter
         if (searchQuery) {
             filtered = filtered.filter(transaction =>
@@ -251,26 +317,20 @@ function Transactions() {
                 transaction.total_cost?.toString().toLowerCase().includes(searchQuery.toLowerCase()))
             );
         }
-
         // Apply transaction type filter (only if it's not 'All')
         if (transactionTypeFilter !== 'All') {
             filtered = filtered.filter(transaction => transaction.transaction_type === transactionTypeFilter);
         }
-
         // Apply start date filter
         if (startDate) {
             filtered = filtered.filter(transaction => new Date(transaction.transaction_date) >= new Date(startDate));
         }
-
         // Apply end date filter
         if (endDate) {
             filtered = filtered.filter(transaction => new Date(transaction.transaction_date) <= new Date(endDate));
         }
-
         setFilteredTransactions(filtered);
     };
-
-
 
     return (
         <>
@@ -342,7 +402,8 @@ function Transactions() {
 
                         }}
                     >
-                        <DownloadIcon sx={{ fontSize: '28' }} />
+
+                        <DownloadIcon onClick={handleDownloadButton} sx={{ fontSize: '28' }} />
 
                     </Button>
                     <Button
@@ -381,12 +442,12 @@ function Transactions() {
                             <thead className="bg-gray-200 text-gray-700 sticky top-0">
                                 <tr>
                                     <th className="border-b px-4 py-2 text-sm border-gray-600">Date</th>
-                                    <th className="border-b px-4 py-2 text-sm border-gray-600">Type</th>
-                                    <th className="border-b px-4 py-2 text-sm border-gray-600">Item Type</th>
+                                    <th className="border-b px-4 py-2 text-sm border-gray-600">Transaction Type</th>
+                                    <th className="border-b px-4 py-2 text-sm border-gray-600">Item Type - Name</th>
+                                    <th className="border-b px-4 py-2 text-sm border-gray-600">Contact Name</th>
                                     <th className="border-b px-4 py-2 text-sm border-gray-600">Quantity</th>
                                     <th className="border-b px-4 py-2 text-sm border-gray-600">Price Per Unit</th>
                                     <th className="border-b px-4 py-2 text-sm border-gray-600">Total Cost</th>
-                                    <th className="border-b px-4 py-2 text-sm border-gray-600">Contact Name</th>
                                     <th className="border-b px-4 py-2 text-sm border-gray-600"></th>
                                 </tr>
                             </thead>
@@ -397,14 +458,16 @@ function Transactions() {
                                     </tr>
                                 ) : (
                                     filteredTransactions.map((transaction) => (
+
                                         <tr key={transaction.transaction_id} className="hover:bg-green-200">
                                             <td className="py-2 px-4">{formatDateToReadableString(transaction.transaction_date)} </td>
                                             <td className="py-2 px-4">{transaction.transaction_type}</td>
-                                            <td className="py-2 px-4">{transaction.item_type}</td>
+                                            <td className="py-2 px-4">{transaction.item_type} - {transaction.item_name}</td>
+                                            <td className="py-2 px-4">{transaction.contact_name}</td>
                                             <td className="py-2 px-4">
                                                 {transaction.quantity}
                                                 {transaction.item_type.includes("Chicks") && " heads"}
-                                                {transaction.item_type.includes("Feeds") && " sacks"}
+                                                {transaction.item_type.includes("Feeds") && " kilos"}
                                                 {transaction.item_type.includes("Vitamins") && " bottles"}
                                                 {transaction.item_type.includes("Labor") && " heads"}
                                                 {transaction.item_type.includes("Water") && " gallons"}
@@ -419,8 +482,7 @@ function Transactions() {
                                                         alt="Peso Icon"
                                                         className="w-5 h-5"
                                                     />
-                                                    {transaction.price_per_unit}
-                                                    {/* Add the unit based on partial match of the item name */}
+                                                    {parseFloat(transaction.price_per_unit).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     {transaction.item_type.includes("Chicks") && " per head"}
                                                     {transaction.item_type.includes("Feeds") && " per sack"}
                                                     {transaction.item_type.includes("Vitamins") && " per bottle"}
@@ -429,7 +491,6 @@ function Transactions() {
                                                     {transaction.item_type.includes("Electricity") && " per kilowatt"}
                                                 </div>
                                             </td>
-
                                             <td className="py-2 px-4">
                                                 <div className="flex items-center gap-1">
                                                     <img
@@ -437,11 +498,9 @@ function Transactions() {
                                                         alt="Peso Icon"
                                                         className="w-5 h-5 mr-1"
                                                     />
-                                                    {transaction.total_cost}
+                                                    {parseFloat(transaction.total_cost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </div>
                                             </td>
-
-                                            <td className="py-2 px-4">{transaction.contact_name}</td>
                                             <td className="flex py-2 px-4 gap-2 justify-center">
                                                 <Button
                                                     onClick={() => handleEditClick(transaction)}
@@ -486,7 +545,7 @@ function Transactions() {
                                 )}
                             </tbody>
                         </table>
-                        <div className="flex flex-col absolute bottom-0 left-0 w-full m-5">
+                        <div className="flex flex-col absolute bottom-0 right-0 m-5">
                             <div className="flex space-x-8">
                                 <div className="flex flex-col">
                                     <span className="text-lg font-semibold">Total Sales:</span>
@@ -494,16 +553,22 @@ function Transactions() {
                                     <span className="text-lg font-semibold">Income/Loss:</span>
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className="text-lg flex"><img src={pesoIcon} alt="Peso Icon" className="inline-block w-6 h-6" />{totalSales}</span>
-                                    <span className="text-lg flex"><img src={pesoIcon} alt="Peso Icon" className="inline-block w-6 h-6" />{totalExpenses}</span>
-                                    <span className={`${incomeOrLoss >= 0 ? 'text-green-600' : 'text-red-600'} text-lg flex`}><img src={pesoIcon} alt="Peso Icon" className="inline-block w-6 h-6" />{incomeOrLoss}</span>
+                                    <span className="text-lg flex">
+                                        <img src={pesoIcon} alt="Peso Icon" className="inline-block w-6 h-6" />{totalSales}
+                                    </span>
+                                    <span className="text-lg flex">
+                                        <img src={pesoIcon} alt="Peso Icon" className="inline-block w-6 h-6" />{totalExpenses}
+                                    </span>
+                                    <span className={`${incomeOrLoss >= 0 ? 'text-green-600' : 'text-red-600'} text-lg flex`}>
+                                        <img src={pesoIcon} alt="Peso Icon" className="inline-block w-6 h-6" />{incomeOrLoss}
+                                    </span>
                                 </div>
                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>
-
             {/* AddTransactionModal */}
             {isAddTransactionModalOpen && (
                 <div className={`fixed inset-0 ${isAddTransactionModalOpen ? 'backdrop-blur-sm' : ''} transition-all`}>
@@ -515,7 +580,6 @@ function Transactions() {
                     />
                 </div>
             )}
-
             {/* EditTransactionModal */}
             {isEditTransactionModalOpen && (
                 <div className={`fixed inset-0 ${isEditTransactionModalOpen ? 'backdrop-blur-sm' : ''} transition-all`}>
@@ -538,10 +602,6 @@ function Transactions() {
                     />
                 </div>
             )}
-
-
-
-            <ToastNotifications />
         </>
     );
 }

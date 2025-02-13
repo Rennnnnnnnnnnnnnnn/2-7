@@ -1,8 +1,13 @@
 import { Link } from 'react-router-dom';
 import qwe from '../assets/react.svg';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import { useLocation } from 'react-router-dom'; 
+
 
 function Navbar() {
+    const location = useLocation();
+    const isActive = (path) => location.pathname === path;
+
     return (
         <nav className="bg-green-800 px-2 py-2">
 
@@ -12,30 +17,29 @@ function Navbar() {
                     <img src={qwe} alt="Logo" className="h-8 w-auto m-1" />
                     <div className="text-white text-xl">Monvirey Poultry Farm</div>
                 </div>
-
                 {/* Right side - Navigation Links */}
                 <div className="flex space-x-5 items-center ml-auto">
                     <Link
                         to="/home"
-                        className="nav-item cursor-pointer text-white hover:text-gray-300"
+                        className={`nav-item cursor-pointer text-white hover:text-gray-300 ${isActive('/home') ? 'border-b-2 border-white pb-2' : ''}`}
                     >
                         Home
                     </Link>
                     <Link
                         to="/inventory"
-                        className="nav-item cursor-pointer text-white hover:text-gray-300"
+                        className={`nav-item cursor-pointer text-white hover:text-gray-300 ${isActive('/inventory') ? 'border-b-2 border-white pb-2' : ''}`}
                     >
                         Inventory
                     </Link>
                     <Link
                         to="/transactions"
-                        className="nav-item cursor-pointer text-white hover:text-gray-300"
+                        className={`nav-item cursor-pointer text-white hover:text-gray-300 ${isActive('/transactions') ? 'border-b-2 border-white pb-2' : ''}`}
                     >
                         Transactions
                     </Link>
                     <Link
                         to="/batch-history"
-                        className="nav-item cursor-pointer text-white hover:text-gray-300"
+                        className={`nav-item cursor-pointer text-white hover:text-gray-300 ${isActive('/batch-history') ? 'border-b-2 border-white pb-2' : ''}`}
                     >
                         Batch History
                     </Link>

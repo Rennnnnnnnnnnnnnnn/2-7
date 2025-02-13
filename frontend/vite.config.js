@@ -22,15 +22,29 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+
   server: {
+
     proxy: {
-      // Proxy requests starting with `/api` to your backend server
       '/api': {
-        target: 'http://localhost:8000', // Your backend URL
+        target: 'http://localhost:8000',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '/api'),
+        // You can optionally use a rewrite function if needed:
+        // rewrite: (path) => path.replace(/^\/api/, '/api'),
       },
+
+      // proxy: {
+      //   '/api': 'http://localhost:8000', // Change this to your backend URL
+      // },
+
+
+      // '/api': {
+      //   target: 'http://localhost:8000',
+      //   changeOrigin: true,
+      //   rewrite: (path) => path.replace(/^\/api/, ''), // Removes the '/api' prefix
+      // },
+
     },
   },
-});
+},);
 
